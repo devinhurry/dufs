@@ -34,7 +34,13 @@ var DATA;
  * @property {string} sort
  * @property {string} order
  */
-const PARAMS = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+// make it compatible with old browsers
+// const PARAMS = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+const PARAMS = {};
+window.location.search.slice(1).split('&').forEach(function (kv) {
+  kv = kv.split('=');
+  PARAMS[kv[0]] = kv[1];
+});
 
 const IFRAME_FORMATS = [
   ".pdf",
@@ -124,7 +130,9 @@ class Uploader {
     this.$uploadStatus = null
     this.uploaded = 0;
     this.lastUptime = 0;
-    this.name = [...dirs, file.name].join("/");
+    //make it compatible with old browsers
+    //this.name = [...dirs, file.name].join("/");
+    this.name = dirs.concat(file.name).join("/");
     this.idx = Uploader.globalIdx++;
     this.file = file;
   }
@@ -319,7 +327,9 @@ function renderPathsTableHead() {
         svg = `<svg width="12" height="12" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/></svg>`
       }
     }
-    const qs = new URLSearchParams({ ...PARAMS, order, sort: item.name }).toString();
+    //make it compatible with old browsers
+    //const qs = new URLSearchParams({ ...PARAMS, order, sort: item.name }).toString();
+    const qs = new URLSearchParams(Object.assign({}, PARAMS, { order, sort: item.name })).toString();
     const icon = `<span>${svg}</span>`
     return `<th class="cell-${item.name}" ${item.props}><a href="?${qs}">${item.text}${icon}</a></th>`
   }).join("\n")}
@@ -558,7 +568,12 @@ async function deletePath(index) {
   const file = DATA.paths[index];
   if (!file) return;
   await doDeletePath(file.name, newUrl(file.name), () => {
-    document.getElementById(`addPath${index}`)?.remove();
+    //make it compatible with old browsers
+    //document.getElementById(`addPath${index}`)?.remove();
+    const $addPath = document.getElementById(`addPath${index}`);
+    if ($addPath) {
+      $addPath.remove();
+    }
     DATA.paths[index] = null;
     if (!DATA.paths.find(v => !!v)) {
       $pathsTable.classList.add("hidden");
@@ -709,7 +724,9 @@ async function addFileEntries(entries, dirs) {
       });
     } else if (entry.isDirectory) {
       const dirReader = entry.createReader()
-      dirReader.readEntries(entries => addFileEntries(entries, [...dirs, entry.name]));
+      //make it compatible with old browsers
+      //dirReader.readEntries(entries => addFileEntries(entries, [...dirs, entry.name]));
+      dirReader.readEntries(entries => addFileEntries(entries, dirs.concat(entry.name)));
     }
   }
 }
@@ -805,7 +822,12 @@ async function assertResOK(res) {
 }
 
 function getEncoding(contentType) {
-    const charset = contentType?.split(";")[1];
+    //make it compatible with old browsers
+    //const charset = contentType?.split(";")[1];
+    if (!contentType) {
+      return 'utf-8'
+    }
+    const charset = contentType.split(";")[1];
     if (/charset/i.test(charset)) {
       let encoding = charset.split("=")[1];
       if (encoding) {
